@@ -1,0 +1,10 @@
+h1 {
+    color: darkviolet;
+    align-items: center;
+}
+
+.container {
+    column-count: 3;
+    column-width: 200px;
+    column-gap: 20px;
+}
