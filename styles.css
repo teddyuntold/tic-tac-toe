@@ -7,4 +7,7 @@ h1 {
     column-count: 3;
     column-width: 200px;
     column-gap: 20px;
+    padding: 20px;
+    margin-top: 20px;
+    background-size:cover;
 }
