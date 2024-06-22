@@ -1,121 +1,150 @@
-import React, { useState, useRef } from 'react'
-import './TicTacToe.css'
-import circle_icon from '../Assets/circle.png'
-import cross_icon from '../Assets/cross.png'
+import React, { useState, useRef, useEffect } from 'react';
+import './TicTacToe.css';
+import circle_icon from '../Assets/circle.png';
+import cross_icon from '../Assets/cross.png';
 
-let data = ["","","","","","","","",""];
+const MAX_HISTORY_LENGTH = 10; // Maximum number of games to keep in history
 
 export const TicTacToe = () => {
-    
-    let [count,setCount] = useState(0);
-    let [lock,setLock] = useState(false);
+    let [data, setData] = useState(Array(9).fill(""));
+    let [count, setCount] = useState(0);
+    let [lock, setLock] = useState(false);
     let titleRef = useRef(null);
-    
-    let box1 = useRef(null);
-    let box2 = useRef(null);
-    let box3 = useRef(null);
-    let box4 = useRef(null);
-    let box5 = useRef(null);
-    let box6 = useRef(null);
-    let box7 = useRef(null);
-    let box8 = useRef(null);
-    let box9 = useRef(null);
+    let [gameHistory, setGameHistory] = useState([]);
+    let [mode, setMode] = useState('multi'); // Default mode is multi-player ('multi' or 'single')
 
-    let box_array = [box1,box2,box3,box4,box5,box6,box7,box8,box9];
-    
-    const toggle = (e, num) => {
-        if (lock){
-            return 0;
-        }
-        if (count%2===0){
-            e.target.innerHTML = `<img src=${cross_icon}>`;
-            data[num] = "X";
-            setCount(++count);
-        }
-        else {
-            e.target.innerHTML = `<img src=${circle_icon}>`;
-            data[num] = "O";
-            setCount(++count);
-        }
-        CheckWin();
-    }
+    let boxRefs = useRef(Array.from({ length: 9 }, () => React.createRef()));
 
-    const CheckWin = () => {
-        if(data[0]===data[1] && data[1]===data[2] && data[2]!=="")
-            {
-                won(data[2])
+    useEffect(() => {
+        if (mode === 'single' && count % 2 === 1) {
+            // Single player mode, computer's turn
+            const timeout = setTimeout(() => {
+                computerMove();
+            }, 500); // Delay for visual effect
+            return () => clearTimeout(timeout);
+        }
+    }, [count, mode]);
+
+    const toggle = (num) => {
+        if (lock || data[num] !== "") {
+            return;
+        }
+
+        let newData = [...data];
+        newData[num] = count % 2 === 0 ? "X" : "O";
+        setData(newData);
+        setCount(count + 1);
+        CheckWin(newData);
+    };
+
+    const computerMove = () => {
+        // Simple logic: computer picks a random empty spot
+        let emptyIndexes = data.reduce((acc, value, index) => {
+            if (value === "") acc.push(index);
+            return acc;
+        }, []);
+
+        if (emptyIndexes.length > 0) {
+            let randomIndex = Math.floor(Math.random() * emptyIndexes.length);
+            toggle(emptyIndexes[randomIndex]);
+        }
+    };
+
+    const CheckWin = (newData) => {
+        const winPatterns = [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6],
+        ];
+
+        for (let pattern of winPatterns) {
+            const [a, b, c] = pattern;
+            if (newData[a] && newData[a] === newData[b] && newData[a] === newData[c]) {
+                won(newData[a]);
+                return;
             }
-        else if(data[3]===data[4] && data[4]===data[5] && data[5]!=="")
-            {
-                won(data[5])
-            }
-        else if(data[6]===data[7] && data[7]===data[8] && data[8]!=="")
-            {
-                won(data[8])
-            }
-        else if(data[0]===data[3] && data[3]===data[6] && data[6]!=="")
-            {
-                won(data[6])
-            }
-        else if(data[1]===data[4] && data[4]===data[7] && data[7]!=="")
-            {
-                won(data[7])
-            }
-        else if(data[2]===data[5] && data[5]===data[8] && data[8]!=="")
-            {
-                won(data[8])
-            }
-        else if(data[0]===data[4] && data[4]===data[8] && data[8]!=="")
-            {
-                won(data[8])
-            }
-        else if(data[2]===data[4] && data[4]===data[6] && data[6]!=="")
-            {
-                won(data[6])
-            }
-    }
+        }
+
+        if (count === 8) {
+            titleRef.current.innerHTML = "It's a Draw!";
+            setLock(true);
+        }
+    };
 
     const won = (winner) => {
         setLock(true);
-        if (winner==="X"){
-            titleRef.current.innerHTML = `Congratulations <img src='${cross_icon}'> Wins`;
+        let result = {
+            winner: winner,
+            timestamp: new Date().toLocaleString(), // You can customize timestamp format
+        };
+
+        // Update game history, keep only last MAX_HISTORY_LENGTH games
+        setGameHistory((prevHistory) => {
+            const newHistory = [...prevHistory, result].slice(-MAX_HISTORY_LENGTH);
+            return newHistory;
+        });
+
+        if (winner === "X") {
+            titleRef.current.innerHTML = `Congratulations <img src='${cross_icon}' alt='X' /> Wins`;
+        } else {
+            titleRef.current.innerHTML = `Congratulations <img src='${circle_icon}' alt='O' /> Wins`;
         }
-        else{
-            titleRef.current.innerHTML = `Congratulations <img src='${circle_icon}'> Wins`
-        }
-    }
+    };
 
     const reset = () => {
         setLock(false);
-        data = ["","","","","","","","",""];
-        titleRef.current.innerHTML = "Tic Tac Toe Game In<span>React</span>";
-        box_array.map((e)=>{
-            e.current.innerHTML = "";
-        })
-    }
+        setData(Array(9).fill(""));
+        setCount(0);
+        titleRef.current.innerHTML = "Tic Tac Toe Game In <span>React</span>";
+    };
 
-  return (
-    <div className='container'>
-        <h1 className="title" ref={titleRef}>Tic Tac Toe Game In<span>React</span></h1>
-        <div className="board">
-            <div className="row1">
-                <div className="boxes" ref={box1} onClick={(e) =>{toggle(e,0)}}></div>
-                <div className="boxes" ref={box2} onClick={(e) =>{toggle(e,1)}}></div>
-                <div className="boxes" ref={box3} onClick={(e) =>{toggle(e,2)}}></div>
+    const handleModeChange = (e) => {
+        setMode(e.target.value);
+        reset();
+    };
+
+    return (
+        <div className='container'>
+            <div className="top-right-toggle">
+                <h1 className="title" ref={titleRef}>Tic Tac Toe Game In <span>React</span></h1>
+                <label>
+                    Mode:
+                    <select value={mode} onChange={handleModeChange} style={{ backgroundColor: '#ffb3de' }}>
+                        <option value="single">Single Player</option>
+                        <option value="multi">Two Players</option>
+                    </select>
+                </label>
             </div>
-            <div className="row2">
-                <div className="boxes" ref={box4} onClick={(e) =>{toggle(e,3)}}></div>
-                <div className="boxes" ref={box5} onClick={(e) =>{toggle(e,4)}}></div>
-                <div className="boxes" ref={box6} onClick={(e) =>{toggle(e,5)}}></div>
+            <div className="game-section">
+                <div className="board">
+                    {data.map((value, index) => (
+                        <div
+                            key={index}
+                            className="boxes"
+                            ref={boxRefs.current[index]}
+                            onClick={() => toggle(index)}
+                        >
+                            {value && <img src={value === "X" ? cross_icon : circle_icon} alt={value} />}
+                        </div>
+                    ))}
+                </div>
+                <div className='leaderboard'>
+                    <h2>Game History</h2>
+                    <ul>
+                        {gameHistory.map((game, index) => (
+                            <li key={index}>
+                                Game {index + 1}: {game.winner === 'X' ? 'Cross' : 'Circle'} won at {game.timestamp}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             </div>
-            <div className="row3">
-                <div className="boxes" ref={box7} onClick={(e) =>{toggle(e,6)}}></div>
-                <div className="boxes" ref={box8} onClick={(e) =>{toggle(e,7)}}></div>
-                <div className="boxes" ref={box9} onClick={(e) =>{toggle(e,8)}}></div>
-            </div>
+            <button className="reset" onClick={reset}>RESET</button>
         </div>
-        <button className="reset" onClick={() => {reset()}}>RESET</button>
-    </div>
-
-  )
-}
+    );
+};
